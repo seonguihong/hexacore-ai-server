@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from app.router import setup_routers
 from config.database.session import engine, Base
 from config.redis_config import get_redis
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -37,15 +40,20 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+origins = [
+    "http://localhost:3000",  # Next.js 프론트 엔드 URL
+]
 
-@app.get("/")
-async def root():
-    return {
-        "message": "HexaCore AI Server",
-        "version": "0.1.0",
-        "status": "running"
-    }
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # 정확한 origin만 허용
+    allow_credentials=True,      # 쿠키 허용
+    allow_methods=["*"],         # 모든 HTTP 메서드 허용
+    allow_headers=["*"],         # 모든 헤더 허용
+)
 
+# Setup all routers
+setup_routers(app)
 
 @app.get("/health")
 async def health_check():
@@ -66,6 +74,4 @@ async def health_check():
     }
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+
