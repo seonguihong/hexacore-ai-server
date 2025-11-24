@@ -6,34 +6,30 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """애플리케이션 전체 설정"""
 
-    # App Settings
+    # App Settings (선택적 - 기본값 제공)
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
 
-    # MySQL Database Settings
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
-    MYSQL_DATABASE: str = "fastapi_test_db"
+    # MySQL Database Settings (필수)
+    MYSQL_HOST: str
+    MYSQL_PORT: int
+    MYSQL_USER: str
+    MYSQL_PASSWORD: str
+    MYSQL_DATABASE: str
 
-    # Redis Settings
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_DB: int = 0
-    REDIS_PASSWORD: str = ""
+    # Redis Settings (필수)
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_DB: int
+    REDIS_PASSWORD: str
 
-    # AWS Settings (boto3가 ~/.aws/credentials 사용)
-    AWS_REGION: str = "ap-northeast-2"
-    AWS_S3_BUCKET: str = ""
+    # Google OAuth (필수)
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_REDIRECT_URI: str
 
-    # Google OAuth (옵션)
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = ""
-
-    # OpenAI Settings
-    OPENAI_API_KEY: str = ""
+    # OpenAI Settings (필수)
+    OPENAI_API_KEY: str
 
     class Config:
         env_file = ".env"
