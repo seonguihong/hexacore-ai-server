@@ -1,4 +1,29 @@
+# IDE
 /.idea/
 /.code/
 /hexacore-ai-server.iml
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.python-version
+
+# Env
 /.env
+/.env.*
+
+# Logs
+*.log
+
+# Frontend build artifacts
+/frontend/node_modules/
+/frontend/.next/
+/frontend/out/
+/frontend/.turbo/
+/frontend/.env.local
+/frontend/.env.*
+
+# Cache
+/cache/
+/tmp/
