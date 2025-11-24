@@ -10,12 +10,14 @@ class Settings(BaseSettings):
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
 
+
     # MySQL Database Settings (필수)
     MYSQL_HOST: str
     MYSQL_PORT: int
     MYSQL_USER: str
     MYSQL_PASSWORD: str
     MYSQL_DATABASE: str
+
 
     # Redis Settings (필수)
     REDIS_HOST: str
