@@ -3,13 +3,16 @@ from attr import attr
 import requests
 from bs4 import BeautifulSoup
 
-class CrollingEngine():
+from app.post_analysis.infrastructure.service.openai_service_impl import OpenAIServiceImpl
+
+
+class CrawlingEngine:
 
     def __init__(self,url: str):
         self.headers = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"}
+        self.OAS = OpenAIServiceImpl()
 
-
-    def GetPageToList(self):
+    def get_page_to_list(self):
         links = []
         for i in range(1, 6):
             url = f"https://www.paxnet.co.kr/tbbs/list?tbbsType=L&id=N11023&page={i}"
@@ -37,6 +40,9 @@ class CrollingEngine():
                 print("🎯 스크랩 중:", link)
                 res = requests.get(link, headers=self.headers)
                 soup = BeautifulSoup(res.text, "lxml")
+                test=self.OAS.analyze_stock_post(link.get_text())
+                print(test)
+
 
                 # 제목
                 title_tag = soup.find("h1")
@@ -58,6 +64,7 @@ class CrollingEngine():
                        print(text)
                 else:
                     print("본문 없음")
+
     # 내일 코드 합질것
     # 팀장님 한테 크롤링 5페이지로 타엽 이유 너무 오래걸림
     # 현재 퐉스넷 게시판 제목과 내용을 가져옴. 더필요한 컬럼 확실하게 정리 필요.
