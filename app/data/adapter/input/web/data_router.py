@@ -3,6 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.crawling.Engine.CrawlingEngine import CrawlingEngine
 from app.data.adapter.input.web.request.create_data_request import (
     CreateDataListRequest,
     CrawlingIngestRequest,
@@ -70,6 +71,20 @@ def get_data(limit: int = 20, db: Session = Depends(get_db)):
         )
         for data in data_list
     ]
+@data_router.post("/dailylist", response_model=List[DataResponse])
+async def daily_listup(limit: int = 20, db: Session = Depends(get_db)):
+    """
+    최근 데이터 목록 조회
+    """
+    keyword_repository = KeywordRepositoryImpl(db)
+    data_repository = DataRepositoryImpl(db, keyword_repository)
+
+    use_case = CreateDataList(data_repository)
+    engine = CrawlingEngine()
+    items = await engine.article_analysis(page_count=5)
+    created_data_list = use_case.execute(items)
+
+    db.commit()
 
 
 # TODO: /data/top-keywords, /data/keywords 등 통계용 엔드포인트는

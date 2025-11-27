@@ -1,18 +1,25 @@
 import re
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from sched import scheduler
 from typing import List, Optional, Dict, Any
 import asyncio
 import requests
 from bs4 import BeautifulSoup
 
-from app.crawling.Engine.prompts import STRICT_JSON_PROMPT
+
+from app.crawling.Engine.prompts import STRICT_JSON_PROMPT, CRAWLING_JSON_PROMPT
+
+from app.data.domain.data import Data
 from app.post_analysis.infrastructure.service.openai_service_impl import OpenAIServiceImpl
+
 
 
 @dataclass
 class Article:
     title: str
     content: str
+    published_at: str
     url: str = ""
     analysis: Optional[Dict[str, Any]] = None
 
@@ -44,7 +51,7 @@ class CrawlingEngine:
 
         return links
 
-    def parse_article(self, html: str) -> tuple[str, str]:
+    def parse_article(self, html: str) -> tuple[str, str, str]:
         """게시글 HTML에서 제목과 본문을 파싱합니다."""
         soup = BeautifulSoup(html, "lxml")
 
@@ -59,7 +66,9 @@ class CrawlingEngine:
         else:
             content = ""
 
-        return title, content
+        published_at = soup.select_one("span.time")["data-date-format"]
+
+        return title, content, published_at
 
     def crawl_pages(self, page_count: int = 5) -> List[Article]:
         """여러 페이지를 크롤링하여 게시글 목록을 반환합니다."""
@@ -76,28 +85,29 @@ class CrawlingEngine:
         for link in all_links:
             print(f"🎯 스크랩 중: {link}")
             res = requests.get(link, headers=self.headers)
-            title, content = self.parse_article(res.text)
+            title, content ,published_at= self.parse_article(res.text)
 
             # OpenAI 분석
 
             print(f"제목: {title}")
             print(f"본문: {content[:200]}...")
+            print(f"작성시간: {published_at}")
 
-
-            articles.append(Article(title=title, content=content, url=link))
+            articles.append(Article(title=title, content=content, url=link,published_at=published_at))
 
         return articles
 
     # aync test
-    async def article_analysis(self, page_count: int = 5) -> List[Article]:
+    async def article_analysis(self, page_count: int = 5):
         articles = self.crawl_pages(page_count=page_count)
         return_articles = []
+
         for article in articles:
             # 엄격한 JSON 형식 프롬프트로 게시글 분석 (prompts.py에서 다른 프롬프트 선택 가능)
-            analysis = await self.OAS.analyze_stock_post(article.content, prompt_template=STRICT_JSON_PROMPT)
+            analysis = await self.OAS.analyze_stock_post2(article.content, prompt_template=CRAWLING_JSON_PROMPT)
+            return_articles.append(Data(title=analysis.get("title"), content=analysis.get("content")
+                                        , keywords=analysis.get("keywords"),published_at=article.published_at))
 
-            print(f"분석: {type(analysis)}")
-            print(f"분석: {(analysis)}")
-
-            return_articles.append(Article(title=article.title, content=article.content, analysis=analysis))
         return return_articles
+
+
