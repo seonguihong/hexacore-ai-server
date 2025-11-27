@@ -2,5 +2,7 @@
 /.code/
 /hexacore-ai-server.iml
 /.env
-*.pyc
+
 __pycache__/
+*.pyc
+.pytest_cache/

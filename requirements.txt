@@ -1,3 +1,5 @@
+attrs
+requests
 fastapi
 uvicorn
 python-dotenv
@@ -5,10 +7,13 @@ pydantic-settings
 langchain
 openai
 pdfplumber
-pypdf
 python-docx
+python-multipart
 beautifulsoup4
 aiohttp
 sqlalchemy
 pymysql
 redis
+lxml
+pytest
+pytest-mock

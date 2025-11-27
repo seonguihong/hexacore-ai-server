@@ -1,0 +1,119 @@
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.data.adapter.input.web.request.create_data_request import (
+    CreateDataListRequest,
+    CrawlingIngestRequest,
+)
+from app.data.adapter.input.web.response.data_response import DataResponse
+from app.data.application.use_case.create_data_list import CreateDataList
+from app.data.application.use_case.get_data_list import GetDataList
+from app.data.infrastructure.repository.data_repository_impl import DataRepositoryImpl
+from app.keywords.infrastructure.repository.keyword_repository_impl import (
+    KeywordRepositoryImpl,
+)
+from config.database.session import get_db
+
+data_router = APIRouter()
+
+
+def _create_data_items(items: list[dict], db: Session) -> list[DataResponse]:
+    try:
+        keyword_repository = KeywordRepositoryImpl(db)
+        data_repository = DataRepositoryImpl(db, keyword_repository)
+
+        use_case = CreateDataList(data_repository)
+
+        created_data_list = use_case.execute(items)
+
+        db.commit()
+
+        response_list = []
+        for data in created_data_list:
+            response_list.append(
+                DataResponse(
+                    id=data.id,
+                    title=data.title,
+                    content=data.content,
+                    keywords=data.keywords,
+                )
+            )
+
+        return response_list
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"데이터 생성 중 오류가 발생했습니다: {str(e)}",
+        ) from e
+
+
+@data_router.get("/", response_model=List[DataResponse])
+def get_data(limit: int = 20, db: Session = Depends(get_db)):
+    """
+    최근 데이터 목록 조회
+    """
+    keyword_repository = KeywordRepositoryImpl(db)
+    repository = DataRepositoryImpl(db, keyword_repository)
+    use_case = GetDataList(repository)
+    data_list = use_case.execute(limit=limit)
+
+    return [
+        DataResponse(
+            id=data.id,
+            title=data.title,
+            content=data.content,
+            keywords=data.keywords,
+        )
+        for data in data_list
+    ]
+
+
+# TODO: /data/top-keywords, /data/keywords 등 통계용 엔드포인트는
+# 추후 datas.keywords 컬럼을 기반으로 재구현할 수 있습니다.
+
+
+@data_router.post(
+    "/",
+    response_model=List[DataResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def create_data_from_crawling(
+    request: CrawlingIngestRequest, db: Session = Depends(get_db)
+):
+    """
+    크롤링/분석 API 결과에 포함된 analysis 내용을 DB에 저장
+    """
+    items_to_save: List[dict] = []
+    for article in request.articles:
+        analysis = article.analysis
+        title = analysis.title.strip()
+        content = analysis.content.strip()
+        keywords = [
+            keyword.strip()
+            for keyword in analysis.keywords
+            if isinstance(keyword, str) and keyword.strip()
+        ]
+
+        if not title or not content:
+            continue
+
+        items_to_save.append(
+            {
+                "title": title,
+                "content": content,
+                "keywords": keywords,
+            }
+        )
+
+    if not items_to_save:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="저장 가능한 분석 데이터가 없습니다.",
+        )
+
+    return _create_data_items(items_to_save, db)
+

@@ -73,5 +73,3 @@ async def health_check():
         "redis": redis_status
     }
 
-
-
